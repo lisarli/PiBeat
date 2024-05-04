@@ -4,6 +4,10 @@ from pygame.locals import *
 import os
 from time import sleep
 import time
+import board
+import adafruit_mma8451
+from adafruit_mma8451 import PL_PUF, PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB
+import random
 
 
 code_run = True
@@ -70,7 +74,7 @@ def display_touch_buttons(touch_buttons):
 
 # set up control button locations
 menu0 = {'Welcome to PiBeat!': (width // 2, height // 2 - 20), 'Quit': (280,220)}
-menu1 = {'Enter Your Name:': (width // 2, height // 2), 'Quit': (280,220)}
+menu1 = {'Choose Your Team:': (width // 2, height // 2), 'Quit': (280,220)}
 menu2 = {'Start': (width // 2, height // 2 - 20), 'Leaderboard': (width // 2, height // 2 + 20) , 'Quit': (280,220)}
 menu3 = {'Pause': (width // 2, height // 2 - 20), 'Back': (40,220) , 'Quit': (280,220)}
 menu4 = {'Resume': (width // 2, height // 2 - 20), 'Back': (40,220) , 'Quit': (280,220)}
@@ -100,10 +104,10 @@ menu_display_dict = {
 }
 
 # set up initial menu
-menu_level = 0
+menu_level = 3
 menu_display_dict[menu_level]()
 pygame.display.update()
-time_limit = 30
+time_limit = 180
 
 
 def menu0_event(x,y):
@@ -118,6 +122,7 @@ def menu1_event(x,y):
 def menu2_event(x,y):
     global menu_level
     # if start, menu_level = 3
+    menu_level = 3
     # if leaderboard, menu_level = 5
 
 def menu3_event(x,y):
@@ -143,7 +148,42 @@ menu_event_dict = {
     4: menu4_event,
 }
 
+# set up game state
+GAME_HEIGHT = 10
+INSN_SIZE = 5
+# PL_PUF is reserved as neutral orientation
+INSNS = [PL_LRF, PL_LLF] # [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB]
+game_time = 0
+insns = [] # list of tuples of (insn, time_generated)
+cur_score = 0
+
+def orientation_to_string(orientation):
+    if orientation == PL_PUF:
+        return "Portrait, up, front"
+    elif orientation == PL_PUB:
+        return "Portrait, up, back"
+    elif orientation == PL_PDF:
+        return "Portrait, down, front"
+    elif orientation == PL_PDB:
+        return "Portrait, down, back"
+    elif orientation == PL_LRF:
+        return "Landscape, right, front"
+    elif orientation == PL_LRB:
+        return "Landscape, right, back"
+    elif orientation == PL_LLF:
+        return "Landscape, left, front"
+    elif orientation == PL_LLB:
+        return "Landscape, left, back"
+
+def get_target_time(time_generated):
+    return time_generated + GAME_HEIGHT + INSN_SIZE // 2
+
+# set up accelerometer
+i2c = board.I2C() 
+sensor = adafruit_mma8451.MMA8451(i2c)
+
 my_clock = pygame.time.Clock()
+
 
 try:
     while (time.time()-starttime < time_limit) and code_run:
@@ -172,11 +212,55 @@ try:
                 menu_event_dict[menu_level](x,y)
 
                 # generate new menu
-                print("displaying menu",menu_level)
+                print("displaying menu", menu_level)
                 lcd.fill(BLACK)
                 menu_display_dict[menu_level]()
                 pygame.display.flip()
+        
+        # display the game
+        if menu_level == 3:
+            print(game_time)
 
+            # get current accelerometer orientation
+            orientation = sensor.orientation
+            
+            # check if we need to generate a new instruction
+            if game_time % INSN_SIZE == 0:
+                next_insn = random.choice(INSNS)
+                print("adding a new instruction:", orientation_to_string(next_insn))
+                insns.append((next_insn, game_time))
+
+            # get the current instruction
+            if len(insns) == 0:
+                print("ERROR: insns is empty")
+            cur_insn, cur_insn_time_generated = insns[0]
+            print(f"detected {orientation_to_string(orientation)}, expected {orientation_to_string(cur_insn)}")
+            target_time = get_target_time(cur_insn_time_generated)
+
+            # check if cur_insn is expired and missed
+            if game_time > target_time + 2:
+                if cur_insn != None:
+                    # TODO: mark instruction as missed, show red gradient
+                    pass
+                print(f"removing insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
+                insns.pop(0)
+            elif game_time > target_time-3:
+                # process current orientation
+                if orientation != PL_PUF and cur_insn != None:
+                    if orientation != cur_insn:
+                        # TODO: mark instruction as missed, show red gradient
+                        print("instruction hit wrong")
+                    else:
+                        # got instruction correctly
+                        cur_score += INSN_SIZE - abs(game_time - target_time)
+                        print("instruction hit correctly")
+                        # TODO: show green gradient
+                    print(f"removing insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
+                    insns.pop(0)
+
+            game_time += 1
+        
+        time.sleep(1)
         
 except KeyboardInterrupt:
     pass
