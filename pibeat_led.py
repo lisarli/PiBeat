@@ -13,6 +13,10 @@ import adafruit_mma8451 as acc
 from threading import Thread
 from runmatrix_helpers import *
 
+game_time = 0
+insns = [] # list of tuples of (insn, time_generated)
+feedback = None
+menu_level = 3
 
 code_run = True
 
@@ -44,24 +48,23 @@ class RunMatrix():
 
 
     def run(self):
-      global code_run
+      global code_run, insns, game_time, menu_level, feedback
+
       while code_run:
-        pos = self.screen.width
+        if menu_level == 3:
+            self.screen.Clear()
 
-        self.screen.Clear()
+            insn_leds = get_insn_leds(insns, game_time)
+            bottom = get_bottom_leds(feedback)
+            led_matrix = np.concatenate((insn_leds, bottom), axis = 0)
 
-        arrow = acc_translate(acc.PL_PUF)
-        instruction = pad_random(arrow)
-        extra = np.zeros((27,16,3), dtype=np.uint8)
-        led_matrix = np.concatenate((instruction, extra), axis = 0)
-
-        for x in range(self.screen.width):
-            for y in range(self.screen.height):
-              r, g, b = led_matrix[x][y]
-              self.screen.SetPixel(x, y, r, g, b)
-      
-        self.screen = self.matrix.SwapOnVSync(self.screen)
-        time.sleep(0.5) 
+            for x in range(self.screen.width):
+                for y in range(self.screen.height):
+                    r, g, b = led_matrix[x][y]
+                    self.screen.SetPixel(x, y, r, g, b)
+        
+            self.screen = self.matrix.SwapOnVSync(self.screen)
+            time.sleep(0.1) 
 
 starttime = time.time()
 
@@ -142,10 +145,9 @@ menu_display_dict = {
 }
 
 # set up initial menu
-menu_level = 0
 menu_display_dict[menu_level]()
 pygame.display.update()
-time_limit = 10
+time_limit = 30
 
 
 def menu0_event(x,y):
@@ -187,12 +189,10 @@ menu_event_dict = {
 }
 
 # set up game state
-GAME_HEIGHT = 10
+GAME_HEIGHT = 25
 INSN_SIZE = 5
 # PL_PUF is reserved as neutral orientation
-INSNS = [PL_LRF, PL_LLF] # [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB]
-game_time = 0
-insns = [] # list of tuples of (insn, time_generated)
+INSNS = [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB, None] # [PL_LRF, PL_LLF]
 cur_score = 0
 
 def orientation_to_string(orientation):
@@ -232,7 +232,6 @@ try:
     while (time.time()-starttime < time_limit) and code_run:
         # update buffer for new touch events
         pitft.update()
-        print("here")
 
         # get touchscreen events
         for event in pygame.event.get():
@@ -275,20 +274,20 @@ try:
             # check if we need to generate a new instruction
             if game_time % INSN_SIZE == 0:
                 next_insn = random.choice(INSNS)
-                print("adding a new instruction:", orientation_to_string(next_insn))
+                # print("adding a new instruction:", orientation_to_string(next_insn))
                 insns.append((next_insn, game_time))
 
             # get the current instruction
             if len(insns) == 0:
                 print("ERROR: insns is empty")
             cur_insn, cur_insn_time_generated = insns[0]
-            print(f"detected {orientation_to_string(orientation)}, expected {orientation_to_string(cur_insn)}")
+            # print(f"detected {orientation_to_string(orientation)}, expected {orientation_to_string(cur_insn)}")
             target_time = get_target_time(cur_insn_time_generated)
 
             # check if cur_insn is expired and missed
             if game_time > target_time + 2:
                 if cur_insn != None:
-                    # TODO: mark instruction as missed, show red gradient
+                    feedback = "MISS"
                     pass
                 print(f"removing insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
                 insns.pop(0)
@@ -296,19 +295,19 @@ try:
                 # process current orientation
                 if orientation != PL_PUF and cur_insn != None:
                     if orientation != cur_insn:
-                        # TODO: mark instruction as missed, show red gradient
+                        feedback = "BAD"
                         print("instruction hit wrong")
                     else:
                         # got instruction correctly
                         cur_score += INSN_SIZE - abs(game_time - target_time)
                         print("instruction hit correctly")
-                        # TODO: show green gradient
+                        feedback = "GOOD"
                     print(f"removing insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
                     insns.pop(0)
 
             game_time += 1
         
-        time.sleep(1)
+        time.sleep(0.25)
         
 except KeyboardInterrupt:
     pass
