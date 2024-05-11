@@ -241,17 +241,6 @@ try:
                 
                 # quit button
                 if y > 170 and x > 250:
-                    code_run = False
-                    t1.join()
-
-                    # clear screen
-                    lcd.fill(BLACK)
-                    pygame.display.flip()
-                    pygame.quit()
-                    
-                    # clean up pins
-                    GPIO.cleanup()
-
                     import sys
                     sys.exit(0)
                 
@@ -310,10 +299,15 @@ try:
         time.sleep(0.2)
         feedback = None
 finally:
+    # clean up LED display
     code_run = False
     t1.join()
+
+    # clean up PiTFT
+    lcd.fill(BLACK)
+    pygame.display.flip()
     pygame.quit()
     del(pitft)
 
-# clean up pins
-GPIO.cleanup()
+    # clean up pins
+    GPIO.cleanup()
