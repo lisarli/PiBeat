@@ -79,8 +79,21 @@ def get_insn_leds(insns, game_time):
     cropped_leds = insn_leds[top_idx-24:top_idx+1]
     return cropped_leds[::-1]
 
-def get_bottom_leds(feedback):
-    target_line = np.full((1, 16, 3), 255)
+def get_feedback_leds(feedback):
     feedback_leds = np.zeros((6,16,3), dtype=np.uint8)
+    feedback_to_color = {
+      None: np.array([0,0,0]),
+      "GOOD": np.array([60,220,40]),
+      "BAD": np.array([230,50,220]),
+      "MISS": np.array([220,60,40])
+    }
+    for i in range(6):
+      c = (i+0.5)/6
+      feedback_leds[i][:][:] =  c * feedback_to_color[feedback]
+    return feedback_leds
+
+def get_bottom_leds(feedback):
+    target_line = np.full((1, 16, 3), 200)
+    feedback_leds = get_feedback_leds(feedback)
     bottom_leds = np.concatenate((target_line, feedback_leds), axis = 0)
     return bottom_leds

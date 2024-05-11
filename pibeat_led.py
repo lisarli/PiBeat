@@ -64,7 +64,7 @@ class RunMatrix():
                     self.screen.SetPixel(x, y, r, g, b)
         
             self.screen = self.matrix.SwapOnVSync(self.screen)
-            time.sleep(0.1) 
+            time.sleep(0.05) 
 
 starttime = time.time()
 
@@ -147,7 +147,7 @@ menu_display_dict = {
 # set up initial menu
 menu_display_dict[menu_level]()
 pygame.display.update()
-time_limit = 30
+time_limit = 90
 
 
 def menu0_event(x,y):
@@ -289,7 +289,7 @@ try:
                 if cur_insn != None:
                     feedback = "MISS"
                     pass
-                print(f"removing insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
+                print(f"removing missed insn ({orientation_to_string(cur_insn)},{cur_insn_time_generated})")
                 insns.pop(0)
             elif game_time > target_time-3:
                 # process current orientation
@@ -307,10 +307,8 @@ try:
 
             game_time += 1
         
-        time.sleep(0.25)
-        
-except KeyboardInterrupt:
-    pass
+        time.sleep(0.2)
+        feedback = None
 finally:
     code_run = False
     t1.join()
