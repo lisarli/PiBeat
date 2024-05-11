@@ -13,12 +13,16 @@ import adafruit_mma8451 as acc
 from threading import Thread
 from runmatrix_helpers import *
 
+
 game_time = 0
 insns = [] # list of tuples of (insn, time_generated)
 feedback = None
-menu_level = 3
+menu_level = 0
+player_team = None
+cur_score = 0
 
 code_run = True
+WELCOME_MESSAGE = "♪ WELCOME TO PIBEAT ♪"
 
 class RunMatrix():
     def __init__(self):
@@ -49,6 +53,10 @@ class RunMatrix():
 
     def run(self):
       global code_run, insns, game_time, menu_level, feedback
+      pos = self.screen.width
+      font = graphics.Font()
+      font.LoadFont("./fonts/helvR12.bdf")
+      textColor = graphics.Color(20, 160, 220)
 
       while code_run:
         if menu_level == 3:
@@ -64,7 +72,28 @@ class RunMatrix():
                     self.screen.SetPixel(x, y, r, g, b)
         
             self.screen = self.matrix.SwapOnVSync(self.screen)
-            time.sleep(0.05) 
+            time.sleep(0.05)
+        elif menu_level == 0:
+            self.screen.Clear()
+            
+            total_len = graphics.DrawText(self.screen, font, pos, 12, textColor, WELCOME_MESSAGE)
+            pos -= 1
+            if (pos <= -total_len):
+                pos = self.screen.width
+            time.sleep(0.05)
+            self.screen = self.matrix.SwapOnVSync(self.screen)
+        elif menu_level == 1:
+            self.screen.Clear()
+            self.screen = self.matrix.SwapOnVSync(self.screen)
+        elif menu_level == 2:
+            self.screen.Clear()
+            self.screen = self.matrix.SwapOnVSync(self.screen)
+        elif menu_level == 4:
+            self.screen.Clear()
+            self.screen = self.matrix.SwapOnVSync(self.screen)
+        elif menu_level == 5:
+            self.screen.Clear()
+            self.screen = self.matrix.SwapOnVSync(self.screen)
 
 starttime = time.time()
 
@@ -91,13 +120,32 @@ lcd = pygame.display.set_mode((width, height))
 lcd.fill((0,0,0))
 pygame.display.flip()
 
-# load graphics
+
+# --- load graphics ---
+
 get_started_button = pygame.image.load("graphics/get_started_button.png")
 get_started_button = pygame.transform.scale(get_started_button, (200,(int)(200/get_started_button.get_width() * get_started_button.get_height())))
 get_started_rect = get_started_button.get_rect()
+
 start_button = pygame.image.load("graphics/start_button.png")
-pause = pygame.image.load("graphics/pause_button.png")
-     
+start_button = pygame.transform.scale(start_button, (150,(int)(150/start_button.get_width() * start_button.get_height())))
+start_button_rect = start_button.get_rect()
+
+pause_button= pygame.image.load("graphics/pause_button.png")
+pause_button = pygame.transform.scale(pause_button, (150,(int)(150/pause_button.get_width() * pause_button.get_height())))
+pause_button_rect = pause_button.get_rect()
+
+resume_button= pygame.image.load("graphics/resume_button.png")
+resume_button = pygame.transform.scale(resume_button, (150,(int)(150/resume_button.get_width() * resume_button.get_height())))
+resume_button_rect = resume_button.get_rect()
+
+trophy_button = pygame.image.load("graphics/trophy.png")
+trophy_button = pygame.transform.scale(trophy_button, (70,(int)(70/trophy_button.get_width() * trophy_button.get_height())))
+trophy_button_rect = trophy_button.get_rect()
+
+# --- end load graphics ---
+
+
 # create font types
 font_big = pygame.font.SysFont("nimbusmonops", 28)
 font_small = pygame.font.Font(None, 20)
@@ -115,11 +163,12 @@ def display_touch_buttons(touch_buttons):
 
 # set up control button locations
 menu0 = {'Welcome to PiBeat!': (width // 2, height // 2 - 20), 'Quit': (280,220)}
-menu1 = {'Choose Your Team:': (width // 2, height // 2), 'Quit': (280,220)}
-menu2 = {'Start': (width // 2, height // 2 - 20), 'Leaderboard': (width // 2, height // 2 + 20) , 'Quit': (280,220)}
-menu3 = {'Pause': (width // 2, height // 2 - 20), 'Back': (40,220) , 'Quit': (280,220)}
-menu4 = {'Resume': (width // 2, height // 2 - 20), 'Back': (40,220) , 'Quit': (280,220)}
+menu1 = {'Choose Your Team:': (width // 2, 20), 'Quit': (280,220)}
+menu2 = {'Quit': (280,220)}
+menu3 = {'Back': (40,220) , 'Quit': (280,220)}
+menu4 = {'Back': (40,220) , 'Quit': (280,220)}
 menu5 = {'Leaderboard': (width // 2, height // 2 - 80), 'Back': (40,220), 'Quit': (280,220)}
+# TODO: make end of game screen, display score and overall ranking
 
 
 def display_menu0():
@@ -128,6 +177,37 @@ def display_menu0():
     get_started_rect.y = 120
     lcd.blit(get_started_button, get_started_rect)
     
+def display_menu1():
+    display_touch_buttons(menu1)
+
+def display_menu2():
+    display_touch_buttons(menu2)
+    
+    # show start button
+    start_button_rect.x = 80
+    start_button_rect.y = 80
+    lcd.blit(start_button, start_button_rect)
+
+    # show trophy button
+    trophy_button_rect.x = 10
+    trophy_button_rect.y = 190
+    lcd.blit(trophy_button, trophy_button_rect)
+
+def display_menu3():
+    display_touch_buttons(menu3)
+
+    # show pause button
+    pause_button_rect.x = 80
+    pause_button_rect.y = 80
+    lcd.blit(pause_button, pause_button_rect)
+
+def display_menu4():
+    display_touch_buttons(menu4)
+
+    # show resume button
+    resume_button_rect.x = 80
+    resume_button_rect.y = 80
+    lcd.blit(resume_button, resume_button_rect)
 
 def display_menu5():
     display_touch_buttons(menu5)
@@ -137,10 +217,10 @@ def display_menu5():
 
 menu_display_dict = {
     0: display_menu0,
-    1: lambda: display_touch_buttons(menu1),
-    2: lambda: display_touch_buttons(menu2),
-    3: lambda: display_touch_buttons(menu3),
-    4: lambda: display_touch_buttons(menu4),
+    1: display_menu1,
+    2: display_menu2,
+    3: display_menu3,
+    4: display_menu4,
     5: display_menu5
 }
 
@@ -149,35 +229,72 @@ menu_display_dict[menu_level]()
 pygame.display.update()
 time_limit = 90
 
+def reset_game():
+    global game_time, insns, feedback, cur_score
+    game_time = 0
+    insns = []
+    feedback = None
+    cur_score = 0
 
 def menu0_event(x,y):
     global menu_level
     # get started
-    if y > height//2+15 and y < height//2+45:
+    if y > height//2 and y < height//2+45 and x > 20 and x < 300:
         menu_level = 1
 
 def menu1_event(x,y):
-    pass
+    global menu_level
+    if y > 20:
+        if x < width//2:
+            if y > height//2:
+                print("chose team snow")
+                team = "SNOW"
+            else:
+                print("chose team rain")
+                team = "RAIN"
+        else:
+            if y > height//2:
+                print("chose team sky")
+                team = "SKY"
+            else:
+                print("chose team ocean")
+                team = "OCEAN"
+    menu_level = 2
 
 def menu2_event(x,y):
     global menu_level
-    # if start, menu_level = 3
-    menu_level = 3
-    # if leaderboard, menu_level = 5
+    if y > 80 and y < 130 and x > 80 and x < 220:
+        # start button pressed
+        menu_level = 3
+    elif y > 180 and x < 80:
+        # trophy button pressed
+        menu_level = 5
 
 def menu3_event(x,y):
     global menu_level
-    # if pause, menu_level = 4
-    # if back, menu_level = 2
+    if y > 80 and y < 130 and x > 80 and x < 220:
+        # pause button pressed
+        menu_level = 4
+    elif y > 160 and x < 100:
+        # back button pressed
+        reset_game()
+        menu_level = 2
 
 def menu4_event(x,y):
     global menu_level
-    # if resume, menu_level = 3
-    # if back, menu_level = 2
+    if y > 80 and y < 130 and x > 80 and x < 220:
+        # resume button pressed
+        menu_level = 3
+    elif y > 160 and x < 100:
+        # back button pressed
+        reset_game()
+        menu_level = 2
 
 def menu5_event(x,y):
     global menu_level
-    # if back, menu_level = 2
+    if y > 160 and x < 100:
+        # back button pressed
+        menu_level = 2
 
 
 menu_event_dict = {
@@ -186,14 +303,14 @@ menu_event_dict = {
     2: menu2_event,
     3: menu3_event,
     4: menu4_event,
+    5: menu5_event,
 }
 
 # set up game state
 GAME_HEIGHT = 25
 INSN_SIZE = 5
 # PL_PUF is reserved as neutral orientation
-INSNS = [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB, None] # [PL_LRF, PL_LLF]
-cur_score = 0
+INSNS = [PL_LRF, PL_LLF, None] # [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB, None]
 
 def orientation_to_string(orientation):
     if orientation == PL_PUF:
@@ -255,10 +372,11 @@ try:
         
         # display the game
         if menu_level == 3:
-            print(game_time)
+            # print(game_time)
 
             # get current accelerometer orientation
             orientation = sensor.orientation
+            print("currently detected:", orientation_to_string(orientation))
             
             # check if we need to generate a new instruction
             if game_time % INSN_SIZE == 0:
@@ -287,6 +405,7 @@ try:
                         feedback = "BAD"
                         print("instruction hit wrong")
                     else:
+                        # FIXME: change lights and score based on timing
                         # got instruction correctly
                         cur_score += INSN_SIZE - abs(game_time - target_time)
                         print("instruction hit correctly")
