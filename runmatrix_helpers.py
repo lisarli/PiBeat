@@ -4,7 +4,8 @@ import random
 
 def acc_translate(orientation):
   front = (100,100,200)
-  back = (200,0, 50)
+  back = (200,0,50)
+
   if orientation == acc.PL_PUF:
       return up_arr(front)
   elif orientation == acc.PL_PUB:
@@ -27,7 +28,7 @@ def acc_translate(orientation):
 def random_offset():
   return random.randint(0, 11)
 
-def up_arr(color):
+def down_arr(color):
   arr = np.zeros((5,5,3), dtype=np.uint8)
 
   arr[0][2] = color
@@ -41,14 +42,14 @@ def up_arr(color):
   arr[4][2] = color
   return arr
 
-def left_arr(color):
-  return np.transpose(up_arr(color), (1, 0, 2))
-
 def right_arr(color):
-  return np.flip(left_arr(color))
+  return np.transpose(down_arr(color), (1, 0, 2))
 
-def down_arr(color):
-  return np.flip(np.flip(up_arr(color), axis=0), axis=1)
+def left_arr(color):
+  return right_arr(color)[::-1, ::-1, :]
+
+def up_arr(color):
+  return down_arr(color)[::-1, ::-1, :]
 
 def get_hash(number):
     hashed_value = hash(number)
@@ -84,8 +85,10 @@ def get_feedback_leds(feedback):
     feedback_to_color = {
       None: np.array([0,0,0]),
       "GOOD": np.array([60,220,40]),
-      "BAD": np.array([230,50,220]),
-      "MISS": np.array([220,60,40])
+      "BAD": np.array([220,60,40]),
+      "MISS": np.array([220,60,40]),
+      "MISTIME_CLOSE": np.array([255,244,79]),
+      "MISTIME_FAR": np.array([247,152,29])
     }
     for i in range(6):
       c = (i+0.5)/6

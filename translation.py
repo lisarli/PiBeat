@@ -139,7 +139,6 @@ try:
 
   time.sleep(5)
 finally:
-  print("here")
   code_run = False
   t1.join()
   pygame.quit()
