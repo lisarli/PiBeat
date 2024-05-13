@@ -17,11 +17,11 @@ def acc_translate(orientation):
   elif orientation == acc.PL_LRF:
       return right_arr(front)
   elif orientation == acc.PL_LRB:
-      return right_arr(back)
+      return left_arr(back)
   elif orientation == acc.PL_LLF:
       return left_arr(front)
   elif orientation == acc.PL_LLB:
-      return left_arr(back)
+      return right_arr(back)
   elif orientation == None:
     return np.zeros((5,5,3))
 

@@ -29,6 +29,9 @@ OCEAN = 1
 RAIN = 2
 SKY = 3
 
+team_dict = {0: "ICE", 1: "OCEAN", 2: "RAIN", 3: "SKY"}
+team_color = {1:  graphics.Color(64, 224, 208), 3:  graphics.Color(135, 206, 235), 0:  graphics.Color(167, 199, 231), 2:  graphics.Color(100, 149, 237)}
+
 
 code_run = True
 WELCOME_MESSAGE = "♪ WELCOME TO PIBEAT ♪"
@@ -70,7 +73,7 @@ class RunMatrix():
       global code_run, insns, game_time, menu_level, feedback
       pos = self.screen.width
       font = graphics.Font()
-      font.LoadFont("./fonts/helvR12.bdf")
+      font.LoadFont("/home/pi/PiBeat/fonts/helvR12.bdf")
       textColor = graphics.Color(20, 160, 220)
 
       while code_run:
@@ -96,15 +99,32 @@ class RunMatrix():
             self.screen = self.matrix.SwapOnVSync(self.screen)
         elif menu_level == 1:
             self.screen.Clear()
+            total_len = graphics.DrawText(self.screen, font, pos, 12, textColor, "CHOOSE A TEAM")
+            pos -= 1
+            if (pos <= -total_len):
+                pos = self.screen.width
+            time.sleep(0.05)
             self.screen = self.matrix.SwapOnVSync(self.screen)
         elif menu_level == 2:
             self.screen.Clear()
+            total_len = graphics.DrawText(self.screen, font, pos, 12,team_color[player_team], team_dict[player_team])
+            pos -= 1
+            if (pos <= -total_len):
+                pos = self.screen.width
+            time.sleep(0.05)
             self.screen = self.matrix.SwapOnVSync(self.screen)
         elif menu_level == 4:
             self.screen.Clear()
             self.screen = self.matrix.SwapOnVSync(self.screen)
         elif menu_level == 5:
             self.screen.Clear()
+            max_team = np.argmax(np.array(team_scores))
+            total_len = graphics.DrawText(self.screen, font, pos, 12, team_color[max_team], team_dict[max_team])
+            pos -= 1
+            if (pos <= -total_len):
+                pos = self.screen.width
+            time.sleep(0.05)
+
             self.screen = self.matrix.SwapOnVSync(self.screen)
         elif menu_level == 6:
             self.screen.Clear()
@@ -146,45 +166,22 @@ pygame.display.flip()
 
 # --- load graphics ---
 
-get_started_button = pygame.image.load("graphics/get_started_button.png")
-get_started_button = pygame.transform.scale(get_started_button, (200,(int)(200/get_started_button.get_width() * get_started_button.get_height())))
-get_started_rect = get_started_button.get_rect()
+def load_image(img_path, scale_factor):
+    button = pygame.image.load("/home/pi/PiBeat/graphics/" + img_path)
+    button = pygame.transform.scale(button, (scale_factor,(int)(scale_factor/button.get_width() * button.get_height())))
+    button_rect = button.get_rect()
+    return button, button_rect
 
-start_button = pygame.image.load("graphics/start_button.png")
-start_button = pygame.transform.scale(start_button, (150,(int)(150/start_button.get_width() * start_button.get_height())))
-start_button_rect = start_button.get_rect()
-
-pause_button= pygame.image.load("graphics/pause_button.png")
-pause_button = pygame.transform.scale(pause_button, (150,(int)(150/pause_button.get_width() * pause_button.get_height())))
-pause_button_rect = pause_button.get_rect()
-
-resume_button= pygame.image.load("graphics/resume_button.png")
-resume_button = pygame.transform.scale(resume_button, (150,(int)(150/resume_button.get_width() * resume_button.get_height())))
-resume_button_rect = resume_button.get_rect()
-
-trophy_button = pygame.image.load("graphics/trophy.png")
-trophy_button = pygame.transform.scale(trophy_button, (70,(int)(70/trophy_button.get_width() * trophy_button.get_height())))
-trophy_button_rect = trophy_button.get_rect()
-
-ice_button = pygame.image.load("graphics/ice.png")
-ice_button = pygame.transform.scale(ice_button, (100,(int)(100/ice_button.get_width() * ice_button.get_height())))
-ice_button_rect = ice_button.get_rect()
-
-ocean_button = pygame.image.load("graphics/ocean.png")
-ocean_button = pygame.transform.scale(ocean_button, (150,(int)(150/ocean_button.get_width() * ocean_button.get_height())))
-ocean_button_rect = ocean_button.get_rect()
-
-rain_button = pygame.image.load("graphics/rain.png")
-rain_button = pygame.transform.scale(rain_button, (120,(int)(120/rain_button.get_width() * rain_button.get_height())))
-rain_button_rect = rain_button.get_rect()
-
-sky_button = pygame.image.load("graphics/sky.png")
-sky_button = pygame.transform.scale(sky_button, (100,(int)(100/sky_button.get_width() * sky_button.get_height())))
-sky_button_rect = sky_button.get_rect()
-
-arrow_button = pygame.image.load("graphics/arrow.png")
-arrow_button = pygame.transform.scale(arrow_button, (50,(int)(50/arrow_button.get_width() * arrow_button.get_height())))
-arrow_button_rect = arrow_button.get_rect()
+get_started_button, get_started_rect = load_image("get_started_button.png", 200)
+start_button, start_button_rect = load_image("start_button.png", 150)
+pause_button, pause_button_rect = load_image("pause_button.png", 150)
+resume_button, resume_button_rect = load_image("resume_button.png", 150)
+trophy_button, trophy_button_rect = load_image("trophy.png", 70)
+ice_button, ice_button_rect = load_image("ice.png", 100)
+ocean_button, ocean_button_rect = load_image("ocean.png", 150)
+rain_button, rain_button_rect = load_image("rain.png", 120)
+sky_button, sky_button_rect = load_image("sky.png", 100)
+arrow_button, arrow_button_rect = load_image("arrow.png", 50)
 
 # --- end load graphics ---
 
@@ -338,16 +335,14 @@ def display_menu6():
     display_text("Score: " + str(cur_score), (160,70), font_big)
 
     # show overall ranking
-    ranking = bisect.bisect_left(all_scores, cur_score)
-    display_text("Your Global Ranking: " + str(len(all_scores) - ranking+1), (160,100), font_small)
-    all_scores.insert(ranking, cur_score)
+    ranking = bisect.bisect_right(all_scores, cur_score)
+    display_text("Your Global Ranking: " + str(len(all_scores)-ranking+1), (160,100), font_small)
 
     # check if new high
-    if cur_score > team_scores[player_team]:
+    if cur_score >= team_scores[player_team]:
         team_names = ["ICE","OCEAN","RAIN","SKY"]
-        display_text("You got a new high score", (160,130), font_small)
+        display_text("You got a high score", (160,130), font_small)
         display_text("for team " + team_names[player_team] + "!", (160,150), font_small)
-        #TODO: change font_small to something more different
         team_scores[player_team] = cur_score
 
     # show arrow button
@@ -369,7 +364,7 @@ menu_display_dict = {
 # set up initial menu
 menu_display_dict[menu_level]()
 pygame.display.update()
-time_limit = 300
+time_limit = 3000
 
 def reset_game():
     global game_time, insns, feedback, cur_score, cur_misses
@@ -456,9 +451,9 @@ menu_event_dict = {
 GAME_HEIGHT = 25
 INSN_SIZE = 5
 GOOD_POINT_VAL = 10
-MISSES_ALLOWED = 3
+MISSES_ALLOWED = 5
 # PL_PUF is reserved as neutral orientation
-INSNS = [PL_PDF, PL_LRF, PL_LLF, None] # [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB, None]
+INSNS =  [PL_PUB, PL_PDF, PL_PDB, PL_LRF, PL_LRB, PL_LLF, PL_LLB, None] # [PL_PDF, PL_LRF, PL_LLF, None]
 
 def orientation_to_string(orientation):
     if orientation == PL_PUF:
@@ -488,7 +483,7 @@ sensor = acc.MMA8451(i2c)
 my_clock = pygame.time.Clock()
 
 # set up leaderboard
-with open('./leaderboard/scores.txt', 'r') as scores:
+with open('/home/pi/PiBeat/leaderboard/scores.txt', 'r') as scores:
     all_scores = scores.readline().strip()
     all_scores = [int(num) for num in all_scores.split(',')]
     team_scores = scores.readline().strip()
@@ -508,18 +503,20 @@ try:
         # get touchscreen events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                code_run = False
+                # code_run = False
                 break
             if(event.type is MOUSEBUTTONUP):
                 x,y = pygame.mouse.get_pos()
                 
                 # quit button
                 if y > 170 and x > 250:
-                    code_run = False
-                    break
-                
-                # process button press
-                menu_event_dict[menu_level](x,y)
+                    if menu_level == 0:
+                        code_run = False
+                        break
+                    menu_level = 0
+                else:
+                    # process button press
+                    menu_event_dict[menu_level](x,y)
 
                 # generate new menu
                 print("displaying menu", menu_level)
@@ -588,6 +585,10 @@ try:
             if cur_misses == MISSES_ALLOWED:
                 menu_level = 6
 
+                # add score to all scores
+                ranking = bisect.bisect_left(all_scores, cur_score)
+                all_scores.insert(ranking, cur_score)
+
                 # generate new menu
                 lcd.fill(BLACK)
                 menu_display_dict[menu_level]()
@@ -603,12 +604,13 @@ finally:
     # clean up PiTFT
     lcd.fill(BLACK)
     pygame.display.flip()
+
     pygame.quit()
     del(pitft)
     
 
     # save scores
-    with open('./leaderboard/scores.txt', 'w') as scores:
+    with open('/home/pi/PiBeat/leaderboard/scores.txt', 'w') as scores:
         scores.write(','.join(map(str, all_scores)))
         scores.write('\n')
         scores.write(','.join(map(str, team_scores)))
