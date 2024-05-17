@@ -1,0 +1,3 @@
+# PiBeat
+
+PiBeat is a reaction time game played using a RaspberryPi with a piTFT connected to an accelerometer and a 32x16 LED matrix. On boot, the game screen automatically starts at the home screen by using cron. The user uses the piTFT to select which team they want to be on which will contribute to the leaderboard score. In order to start, stop, or resume game play, the user will use the corresponding buttons on the piTFT. The game is then displayed on the LED matrix where future actions flow down the board and the action the player takes is scored based on how on time they change their action. 
